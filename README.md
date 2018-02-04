@@ -2,6 +2,7 @@
 
 *Dr. Mine* is a node script written to aid automatic detection of in-browser cryptojacking. The most accurate way to detect things that happen in a browser is via browser itself. Thus, Dr. Mine uses [puppeteer](https://github.com/GoogleChrome/puppeteer) to automate browser thingy and catches any requests to online cryptominers. When a request to any online cryptominers is detected, it flags the corresponding URL and cryptominer being in use. Therefore, however the code is written or obfuscated, Dr. Mine will catch it (as long as the miners are in the list). The list of online cryptominers are fetched from [CoinBlockerLists](https://github.com/ZeroDot1/CoinBlockerLists). The result is also saved on file for later use.
 
+- Can also process single URL passed directly via command line
 - All links found on the first (requested) page are also processed, if same-origin
 - All configurable options are stored in `config.js` allowing easier modifications
 - To reduce extra bandwidth and processing, all requests to resources like `fonts`, `images`, `media`, `stylesheets` are aborted
@@ -19,7 +20,7 @@ https://docs.npmjs.com/getting-started/installing-node
 https://github.com/GoogleChrome/puppeteer#installation    
 
 ## Usage
-Dr. Mine accepts a file which is expected to contain valid URLs. Usage is as simple as;
+Dr. Mine accepts either a URL or a file which is expected to contain valid URLs. Usage is as simple as;
 ```
 node drmine.js list.txt
 ```
@@ -28,6 +29,10 @@ A sample list.txt looks like;
 http://cm2.pw
 http://cm2.pw/xmr/
 https://example.com/
+```
+An example of passing URL directly via command line;
+```
+node drmine.js http://cm2.pw/xmr/
 ```
 
 ## Screenshot
@@ -38,4 +43,3 @@ Dr. Mine can still be improved in a lot of ways. Any feedback and/or contributio
 
 ### To-do
 - Proper Error Handling
-- Allow scan of single URL directly via command line

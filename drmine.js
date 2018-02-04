@@ -14,7 +14,7 @@ const config = require('./config.js');
 async function init(){
     try{
         browser = await puppeteer.launch({
-            //headless: false,
+            headless: false,
             ignoreHTTPSErrors: true,
             //executablePath: '/usr/bin/chrome',  // can be set as required
             args: ['--no-sandbox']
@@ -129,6 +129,11 @@ function proceed(domains){
 (async () => {
     await init();
     await getMiners();
+    
+    if(/^https?:\/\//i.test(path)){
+        return proceed([path]);
+    }
+    
     try{
         fs.readFile(path, 'utf8', (error, data) => {
             proceed(data.trim().split('\n'));
