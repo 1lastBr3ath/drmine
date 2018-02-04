@@ -7,6 +7,7 @@ let browser;
 let online_miners;
 
 const scanned_hosts = [];
+const culprit_hosts = [];
 const path = process.argv[2];
 const config = require('./config.js');
 
@@ -83,6 +84,7 @@ function detectMiner(request, url){
     // ignore results of redirect - TODO
     const script_url = new URL(request.url());
     if(online_miners.includes(script_url.host)){
+        culprit_hosts.push(new URL(url).host);
         console.info(`Test against =>  ${url}`);
         console.info(`Detected miner: ${request.url()}`);
         writeFile(config.output_file, {url: url, msg: ` => Found using ${request.url()}`});
@@ -100,9 +102,12 @@ function log(url, msg){
 }
 
 function proceed(domains){
-    if(!domains.length){
-        return false;
-    }
+    // remove domains already found mining
+    culprit_hosts.forEach(culprit => {
+        const pattern = new RegExp(`^https?:\\\/\\\/${culprit.replace('.', '\\\.')}`, 'iu');
+        domains = domains.filter(domain=>!pattern.test(domain));
+    });
+    if(!domains.length) return false;
     console.info('Length: ', domains.length);
     const top50 = domains.splice(0, 50);
     console.info(top50.length, domains.length);
