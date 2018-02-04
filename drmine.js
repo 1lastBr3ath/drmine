@@ -2,19 +2,13 @@ const fs = require('fs');
 const { URL } = require('url');
 const puppeteer = require('puppeteer');
 
-const resources = [     // resource types not needed to be requested
-    'font',
-    'image',
-    'media',
-    'stylesheet'
-];
-
-let online_miners;
-const miner_list = 'list_browser.txt';
 
 let browser;
+let online_miners;
+
+const scanned_hosts = [];
 const path = process.argv[2];
-const output_file = 'culprits.txt';
+const config = require('./config.js');
 
 async function init(){
     try{
@@ -31,23 +25,27 @@ async function init(){
 }
 
 async function responseInfo(url){
-    let page;
     try {
-        page = await browser.newPage();
+        const page = await browser.newPage();
         page.setRequestInterception(true);
         page.on('request', req => intercept(req, url));
-        //await page.setViewport({height: 1200, width: 1600});
-        await page.goto(url, {timeout: 30000});
+        await page.goto(url, {timeout: config.timeout});
+        const host = new URL(page.url()).host;
+        const hrefs = await page.$$eval('a[href]', anchors => anchors.map(a=>a.href));
+        if(!scanned_hosts.includes(host)){  // scan only if not already scanned
+            scanned_hosts.push(host);
+            checkLinks(host, hrefs);
+        }
         await page.close();
     }
-    catch (e) {
-        console.log(url, e);
+    catch(e) {
+        log(url, e.message);
     }
 }
 
 function intercept(request, url){
     // abort request to unneccessary resources
-    if(resources.includes(request.resourceType)){
+    if(config.resources.includes(request.resourceType())){
         return request.abort();
     }
     else if('script' === request.resourceType()){
@@ -56,13 +54,38 @@ function intercept(request, url){
     request.continue();
 }
 
+async function getMiners(){
+    try{
+        const page = await browser.newPage();
+        await page.goto(config.list_browser, {timeout: config.timeout});
+        online_miners = await page.evaluate(()=>document.body.innerText);
+        if(!online_miners){
+            throw "Something went wrong, online_miners seems emtpy :(";
+        }
+        online_miners = online_miners.trim().split('\n').map(i => i.trim());
+        await page.close();
+    }
+    catch(e){
+        console.error(e.message);
+    }
+}
+
+function checkLinks(host, hrefs){
+  if(!hrefs) return false;
+  const links = hrefs.filter((value, index, self) => {
+            // filter unique and same-origin hosts
+            return self.indexOf(value) == index && host === new URL(value).host
+        });
+  proceed(links);
+}
+
 function detectMiner(request, url){
     // ignore results of redirect - TODO
     const script_url = new URL(request.url());
     if(online_miners.includes(script_url.host)){
-        console.log(`Test against =>  ${url}`);
-        console.log(`Detected miner: ${request.url()}`);
-        writeFile(output_file, {url: url, msg: ` => Found using ${request.url()}`});
+        console.info(`Test against =>  ${url}`);
+        console.info(`Detected miner: ${request.url()}`);
+        writeFile(config.output_file, {url: url, msg: ` => Found using ${request.url()}`});
     }
 }
 
@@ -72,17 +95,20 @@ function writeFile(fileName, data, flag='a'){   // data expected to be an object
     });
 }
 
+function log(url, msg){
+    writeFile(config.log_file, {url: url, msg: msg});
+}
+
 function proceed(domains){
     if(!domains.length){
-        browser.close();
         return false;
     }
-    console.log('Length: ', domains.length);
+    console.info('Length: ', domains.length);
     const top50 = domains.splice(0, 50);
-    console.log(top50.length, domains.length);
+    console.info(top50.length, domains.length);
     top50.forEach(async domain => {
         try{
-            await responseInfo(`${domain.trim()}`);
+            await responseInfo(domain.trim());
         }
         catch(e){
             // do nothing
@@ -97,16 +123,14 @@ function proceed(domains){
 
 (async () => {
     await init();
+    await getMiners();
     try{
-        fs.readFile(miner_list, 'utf8', (error, data) => {
-          online_miners = data.split('\n').map(i=>i.trim());
-        });
         fs.readFile(path, 'utf8', (error, data) => {
             proceed(data.trim().split('\n'));
         });
     }
     catch(e){
-        console.log(e);
+        console.error(e.message);
     }
 })();
 
