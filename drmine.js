@@ -14,7 +14,7 @@ const config = require('./config.js');
 async function init(){
     try{
         browser = await puppeteer.launch({
-            headless: false,
+            //headless: false,
             ignoreHTTPSErrors: true,
             //executablePath: '/usr/bin/chrome',  // can be set as required
             args: ['--no-sandbox']

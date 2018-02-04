@@ -11,6 +11,7 @@
 The following 3 lines of commands should set everything up and running on Arch distros;
 ```
 pacman -S nodejs npm
+git clone https://github.com/1lastBr3ath/drmine.git && cd drmine
 npm i --save puppeteer
 ```
 
