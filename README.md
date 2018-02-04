@@ -3,7 +3,7 @@
 *Dr. Mine* is a node script written to aid automatic detection of in-browser cryptojacking. The most accurate way to detect things that happen in a browser is via browser itself. Thus, Dr. Mine uses [puppeteer](https://github.com/GoogleChrome/puppeteer) to automate browser thingy and catches any requests to online cryptominers. The list of online cryptominers are fetched from [CoinBlockerLists](https://github.com/ZeroDot1/CoinBlockerLists). When a request to any online cryptominers is detected, it flags the corresponding URL and cryptominer being in use. The result is also saved on file for later use. To reduce extra bandwidth and processing, all requests to resources like `fonts`, `images`, `media`, `stylesheets` are aborted.
 
 ## Pre-requisites & Installation
-The following 3 lines of commands shoud set everything up and running on Arch distros;
+The following 3 lines of commands should set everything up and running on Arch distros;
 ```
 pacman -S nodejs npm
 npm i --save puppeteer
