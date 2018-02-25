@@ -26,8 +26,9 @@ async function init(){
 }
 
 async function responseInfo(url){
+    let page;
     try {
-        const page = await browser.newPage();
+        page = await browser.newPage();
         page.setRequestInterception(true);
         page.on('request', req => intercept(req, url));
         await page.goto(url, {timeout: config.timeout});
@@ -37,10 +38,12 @@ async function responseInfo(url){
             scanned_hosts.push(host);
             checkLinks(host, hrefs);
         }
-        await page.close();
     }
     catch(e) {
         log(url, e.message);
+    }
+    finally {
+        await page.close();
     }
 }
 
@@ -56,23 +59,26 @@ function intercept(request, url){
 }
 
 async function getMiners(){
+    let page;
     try{
-        const page = await browser.newPage();
+        page = await browser.newPage();
         await page.goto(config.list_browser, {timeout: config.timeout});
         online_miners = await page.evaluate(()=>document.body.innerText);
         if(!online_miners){
             throw "Something went wrong, online_miners seems emtpy :(";
         }
         online_miners = online_miners.trim().split('\n').map(i => i.trim());
-        await page.close();
     }
     catch(e){
         console.error(e.message);
     }
+    finally {
+        await page.close();
+    }
 }
 
 function checkLinks(host, hrefs){
-  if(!hrefs) return false;
+  if(!hrefs) return;
   const links = hrefs.filter((value, index, self) => {
             // filter unique and same-origin hosts
             return self.indexOf(value) == index && host === new URL(value).host
@@ -101,29 +107,36 @@ function log(url, msg){
     writeFile(config.log_file, {url: url, msg: msg});
 }
 
-function proceed(domains){
-    // remove domains already found mining
-    culprit_hosts.forEach(culprit => {
-        const pattern = new RegExp(`^https?:\\\/\\\/${culprit.replace('.', '\\\.')}`, 'iu');
-        domains = domains.filter(domain=>!pattern.test(domain));
-    });
-    if(!domains.length) return false;
-    console.info('Length: ', domains.length);
-    const top50 = domains.splice(0, 50);
-    console.info(top50.length, domains.length);
-    top50.forEach(async domain => {
-        try{
-            await responseInfo(domain.trim());
-        }
-        catch(e){
-            // do nothing
-            return false;
-        }
-    });
+async function proceed(domains){
+    let tabs;
+    try{
+        tabs = await browser.targets();
+    }
+    catch(e){
+        // do nothing
+    }
+
+    if(tabs.length < config.tabs){
+        // remove domains already found mining
+        culprit_hosts.forEach(culprit => {
+            const pattern = new RegExp(`^https?:\\\/\\\/${culprit.replace('.', '\\\.')}`, 'iu');
+            domains = domains.filter(domain=>!pattern.test(domain.trim()));
+        });
+        if(!domains.length) return;
+        const top50 = domains.splice(0, config.tabs);
+        console.info('Length: ', domains.length, tabs.length);
+
+        top50.forEach(async domain => {
+            try{
+                await responseInfo(domain.trim());
+            }
+            catch(e){
+                // do nothing
+            }
+        });
+    }
     // recursion
-    setTimeout(function(){
-        proceed(domains);
-    }, 25000);
+    setTimeout(()=>proceed(domains), config.timeout);
 }
 
 (async () => {
