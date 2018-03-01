@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { URL } = require('url');
+const Promise = require('bluebird');
 const puppeteer = require('puppeteer');
 
 
@@ -26,6 +27,9 @@ async function init(){
 }
 
 async function responseInfo(url){
+    // remove hosts already found mining
+    if(culprit_hosts.includes(new URL(url).host))
+        return;
     let page;
     try {
         page = await browser.newPage();
@@ -33,14 +37,21 @@ async function responseInfo(url){
         page.on('request', req => intercept(req, url));
         await page.goto(url, {timeout: config.timeout});
         const host = new URL(page.url()).host;
-        const hrefs = await page.$$eval('a[href]', anchors => anchors.map(a=>a.href));
+        await page._client.send('Page.setDownloadBehavior', {behavior: 'deny'});
         if(!scanned_hosts.includes(host)){  // scan only if not already scanned
             scanned_hosts.push(host);
+            const hrefs = await page.$$eval('a[href]',
+                    anchors => anchors.map(a=>a.href));
             checkLinks(host, hrefs);
         }
     }
     catch(e) {
-        log(url, e.message);
+        if(!/ERR_NAME_NOT_RESOLVED|Target closed|not opened/.test(e.message)){
+            console.info('Trying to reload', url);
+            await page.reload({timeout: config.timeout});
+        }
+        else
+            log(url, e.message);
     }
     finally {
         await page.close();
@@ -53,7 +64,8 @@ function intercept(request, url){
         return request.abort();
     }
     else if('script' === request.resourceType()){
-        detectMiner(request, url);
+        if(detectMiner(request, url))
+            return request.abort();
     }
     request.continue();
 }
@@ -87,14 +99,17 @@ function checkLinks(host, hrefs){
 }
 
 function detectMiner(request, url){
+    let flag = false;
     // ignore results of redirect - TODO
     const script_url = new URL(request.url());
     if(online_miners.includes(script_url.host)){
+        flag = true;
         culprit_hosts.push(new URL(url).host);
         console.info(`Test against =>  ${url}`);
         console.info(`Detected miner: ${request.url()}`);
         writeFile(config.output_file, {url: url, msg: ` => Found using ${request.url()}`});
     }
+    return flag;
 }
 
 function writeFile(fileName, data, flag='a'){   // data expected to be an object with attrs url and msg
@@ -107,36 +122,30 @@ function log(url, msg){
     writeFile(config.log_file, {url: url, msg: msg});
 }
 
-async function proceed(domains){
-    let tabs;
+async function proceed(urls){
+    if(!urls.length) return;
     try{
-        tabs = await browser.targets();
+        await Promise.map(
+            urls,
+            async (url, index, length) => {
+                try{
+                    await responseInfo(url);
+                }
+                catch(e){
+                    console.info('[!] Number of URLs processed:', index);
+                }
+            },
+            {concurrency: config.tabs}
+        );
     }
     catch(e){
-        // do nothing
+        console.log('Error!', e.message);
     }
-
-    if(tabs.length < config.tabs){
-        // remove domains already found mining
-        culprit_hosts.forEach(culprit => {
-            const pattern = new RegExp(`^https?:\\\/\\\/${culprit.replace('.', '\\\.')}`, 'iu');
-            domains = domains.filter(domain=>!pattern.test(domain.trim()));
-        });
-        if(!domains.length) return;
-        const top50 = domains.splice(0, config.tabs);
-        console.info('Length: ', domains.length, tabs.length);
-
-        top50.forEach(async domain => {
-            try{
-                await responseInfo(domain.trim());
-            }
-            catch(e){
-                // do nothing
-            }
-        });
+    finally {
+        //await browser.close();
+        console.info('[!] Time:', Date());
+        console.info("[-] Terminate (CTRL+C) if idle for over a minute");
     }
-    // recursion
-    setTimeout(()=>proceed(domains), config.timeout);
 }
 
 (async () => {

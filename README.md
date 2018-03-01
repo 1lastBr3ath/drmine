@@ -7,12 +7,14 @@
 - All configurable options are stored in `config.js` allowing easier modifications
 - To reduce extra bandwidth and processing, all requests to resources like `fonts`, `images`, `media`, `stylesheets` are aborted
 
+Dr. Mine, now, uses [bluebird](https://github.com/petkaantonov/bluebird)- making it much faster and more efficient.
+
 ## Pre-requisites & Installation
 The following 3 lines of commands should set everything up and running on Arch distros;
 ```
 pacman -S nodejs npm
 git clone https://github.com/1lastBr3ath/drmine.git && cd drmine
-npm i --save puppeteer
+npm i --save bluebird puppeteer
 ```
 
 Please make sure your version of node is 7.6.0 or greater. For any installation assistance or instructions on specific distros, please refer to respective documents;    
