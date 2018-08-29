@@ -14,7 +14,7 @@ The following 3 lines of commands should set everything up and running on Arch d
 ```
 pacman -S nodejs npm
 git clone https://github.com/1lastBr3ath/drmine.git && cd drmine
-npm i --save bluebird puppeteer
+npm install
 ```
 
 Please make sure your version of node is 7.6.0 or greater. For any installation assistance or instructions on specific distros, please refer to respective documents;    
