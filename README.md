@@ -1,6 +1,6 @@
 # Dr. Mine
 
-*Dr. Mine* is a node script written to aid automatic detection of in-browser cryptojacking. The most accurate way to detect things that happen in a browser is via browser itself. Thus, Dr. Mine uses [puppeteer](https://github.com/GoogleChrome/puppeteer) to automate browser thingy and catches any requests to online cryptominers. When a request to any online cryptominers is detected, it flags the corresponding URL and cryptominer being in use. Therefore, however the code is written or obfuscated, Dr. Mine will catch it (as long as the miners are in the list). The list of online cryptominers are fetched from [CoinBlockerLists](https://github.com/ZeroDot1/CoinBlockerLists). The result is also saved on file for later use.
+*Dr. Mine* is a node script written to aid automatic detection of in-browser cryptojacking. The most accurate way to detect things that happen in a browser is via browser itself. Thus, Dr. Mine uses [puppeteer](https://github.com/GoogleChrome/puppeteer) to automate browser thingy and catches any requests to online cryptominers. When a request to any online cryptominers is detected, it flags the corresponding URL and cryptominer being in use. Therefore, however the code is written or obfuscated, Dr. Mine will catch it (as long as the miners are in the list). The list of online cryptominers are fetched from [CoinBlockerLists](https://gitlab.com/ZeroDot1/CoinBlockerLists). The result is also saved on file for later use.
 
 - Can also process single URL passed directly via command line
 - All links found on the first (requested) page are also processed, if same-origin
@@ -17,10 +17,10 @@ git clone https://github.com/1lastBr3ath/drmine.git && cd drmine
 npm install
 ```
 
-Please make sure your version of node is 7.6.0 or greater. For any installation assistance or instructions on specific distros, please refer to respective documents;    
+Please make sure your version of node is 7.6.0 or greater. For any installation assistance or instructions on specific distros, please refer to respective documentations;    
 https://nodejs.org/en/download/package-manager/    
 https://docs.npmjs.com/getting-started/installing-node    
-https://github.com/GoogleChrome/puppeteer#installation    
+https://github.com/puppeteer/puppeteer#puppeteer-core    
 
 ## Usage
 Dr. Mine accepts either a URL or a file which is expected to contain valid URLs. Usage is as simple as;
