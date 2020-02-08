@@ -12,7 +12,8 @@
   },
   "homepage": "https://github.com/1lastBr3ath/drmine#readme",
   "dependencies": {
-    "bluebird": "^3.5.1",
-    "node-fetch": "^2.2.0"
+    "bluebird": "^3.7.2",
+    "node-fetch": "^2.2.0",
+    "puppeteer-core": "^2.1.1"
   }
 }

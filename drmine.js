@@ -1,7 +1,9 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const { URL } = require('url');
 const Promise = require('bluebird');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 
 
 let browser;
@@ -13,17 +15,21 @@ const path = process.argv[2];
 const config = require('./config.js');
 
 async function init(){
-    try{
-        browser = await puppeteer.launch({
-            //headless: false,
-            ignoreHTTPSErrors: true,
-            //executablePath: '/usr/bin/chrome',  // can be set as required
-            args: ['--no-sandbox']
-        });
-    }
-    catch(e){
-        console.log('Error!', e);
-    }
+  browser = await puppeteer.launch({
+    //headless: false,
+    ignoreHTTPSErrors: true,
+    executablePath: config.executablePath,
+    args: [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-extensions',
+      '--dns-prefetch-disable',
+      '--disable-dev-shm-usage',
+      '--ignore-certificate-errors',
+      '--allow-running-insecure-content',
+      '--enable-features=NetworkService',
+    ],
+  }).catch(e => console.error('Error!', e.message));
 }
 
 async function responseInfo(url){
@@ -101,20 +107,19 @@ function checkLinks(host, hrefs){
 function detectMiner(request, url){
     let flag = false;
     // ignore results of redirect - TODO
-    const script_url = new URL(request.url());
-    if(online_miners.includes(script_url.host)){
+    const reqURL = new URL(request.url());
+    if(online_miners.includes(reqURL.host)){
         flag = true;
         culprit_hosts.push(new URL(url).host);
-        console.info(`Test against =>  ${url}`);
-        console.info(`Detected miner: ${request.url()}`);
-        writeFile(config.output_file, {url: url, msg: ` => Found using ${request.url()}`});
+        console.info(`${url} => ${reqURL.href}`);
+        writeFile(config.output_file, {url: url, msg: ` => Found using ${reqURL}`});
     }
     return flag;
 }
 
 function writeFile(fileName, data, flag='a'){   // data expected to be an object with attrs url and msg
     fs.writeFile(fileName, `${data.url} ${data.msg}\n`, {flag: flag}, (err) => {
-        if(err) console.log(err)
+        if(err) console.error(err)
     });
 }
 
@@ -139,7 +144,7 @@ async function proceed(urls){
         );
     }
     catch(e){
-        console.log('Error!', e.message);
+        console.error('Error!', e.message);
     }
     finally {
         //await browser.close();
